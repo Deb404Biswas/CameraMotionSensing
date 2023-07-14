@@ -1,4 +1,5 @@
 import cv2
+import datetime
 
 # Initialize the video capture
 video_capture = cv2.VideoCapture(0)
@@ -39,7 +40,10 @@ while True:
 
     # Take a snapshot if motion is detected and a snapshot hasn't been taken yet
     if motion_detected and not snapshot_taken:
-        cv2.imwrite("motion_snapshot.jpg", frame)
+        current_time = datetime.datetime.now().strftime("%Y/%m/%d_%H:%M:%S")
+        snapshot_filename = f"motion_snapshot_{current_time}.jpg"
+        cv2.imwrite(snapshot_filename, frame)
+        print(f"Snapshot taken at {current_time}")
         snapshot_taken = True
 
     # Display the resulting frame
