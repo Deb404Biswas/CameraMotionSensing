@@ -1,49 +1,54 @@
 import cv2
-import numpy as np
 
-# Set up video capture
-cap = cv2.VideoCapture(0)
+# Initialize the video capture
+video_capture = cv2.VideoCapture(0)
 
-# Set up background subtraction
-fgbg = cv2.createBackgroundSubtractorMOG2()
+# Initialize the motion detection variables
+motion_detected = False
+snapshot_taken = False
 
 while True:
-    # Read a frame from the webcam
-    ret, frame = cap.read()
+    # Read the current frame from the video feed
+    ret, frame = video_capture.read()
 
-    # Apply background subtraction
-    fgmask = fgbg.apply(frame)
+    # Convert the frame to grayscale for motion detection
+    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    gray_frame = cv2.GaussianBlur(gray_frame, (21, 21), 0)
 
-    # Threshold the foreground mask
-    thresh = cv2.threshold(fgmask, 127, 255, cv2.THRESH_BINARY)[1]
+    # If it's the first frame, initialize the background model
+    if not motion_detected:
+        background_model = gray_frame
+        motion_detected = True
+        continue
 
-    # Remove noise using morphological operations
-    kernel = np.ones((5, 5), np.uint8)
-    opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=2)
+    # Calculate the absolute difference between the current frame and the background model
+    frame_delta = cv2.absdiff(background_model, gray_frame)
+    thresh = cv2.threshold(frame_delta, 30, 255, cv2.THRESH_BINARY)[1]
+    thresh = cv2.dilate(thresh, None, iterations=2)
 
-    # Perform color correction
-    frame_corrected = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    frame_corrected = cv2.cvtColor(frame_corrected, cv2.COLOR_RGB2BGR)
+    # Find contours of the thresholded image
+    contours, _ = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Find contours in the thresholded image
-    contours, hierarchy = cv2.findContours(opening, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # Check if motion is detected
+    motion_detected = False
+    for contour in contours:
+        if cv2.contourArea(contour) > 500:
+            (x, y, w, h) = cv2.boundingRect(contour)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            motion_detected = True
 
-    # Draw rectangles around any moving objects
-    for c in contours:
-        x, y, w, h = cv2.boundingRect(c)
-        cv2.rectangle(frame_corrected, (x, y), (x + w, y + h), (0, 255, 0), 2)
+    # Take a snapshot if motion is detected and a snapshot hasn't been taken yet
+    if motion_detected and not snapshot_taken:
+        cv2.imwrite("motion_snapshot.jpg", frame)
+        snapshot_taken = True
 
     # Display the resulting frame
-    cv2.imshow('frame', frame_corrected)
+    cv2.imshow("Motion Detection", frame)
 
-    # Check for motion and send an alert
-    if len(contours) > 0:
-        print("Motion detected!")
-
-    # Exit if the user presses 'q'
+    # Break the loop if 'q' is pressed
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-# Clean up
-cap.release()
+# Release the video capture and close all windows
+video_capture.release()
 cv2.destroyAllWindows()
