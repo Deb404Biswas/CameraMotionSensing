@@ -3,4 +3,4 @@ This is a university project at Vellore Institute of Technology, Chennai. This p
 
 When the code senses any unusual movements then 5 snapshots of the video feed is taken at an interval of 5 seconds each.
 Each picture will be saved by the name of date_of_picture_taken and time_of_picture taken.
-
+(Project under development)
