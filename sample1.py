@@ -1,5 +1,5 @@
 import cv2
-import datetime
+import time
 
 # Initialize the video capture
 video_capture = cv2.VideoCapture(0)
@@ -7,6 +7,12 @@ video_capture = cv2.VideoCapture(0)
 # Initialize the motion detection variables
 motion_detected = False
 snapshot_taken = False
+
+# Initialize the snapshot counter
+snapshot_counter = 0
+
+# Initialize the snapshot time
+snapshot_time = time.time()
 
 while True:
     # Read the current frame from the video feed
@@ -38,13 +44,13 @@ while True:
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
             motion_detected = True
 
-    # Take a snapshot if motion is detected and a snapshot hasn't been taken yet
-    if motion_detected and not snapshot_taken:
-        current_time = datetime.datetime.now().strftime("%d/%m/%Y_%H:%M:%S")
-        snapshot_filename = f"motion_snapshot_{current_time}.jpg"
-        cv2.imwrite(snapshot_filename, frame)
-        print(f"Snapshot taken at {current_time}")
-        snapshot_taken = True
+    # Take a snapshot if motion is detected and the snapshot counter is less than 5 and 5 seconds have passed since the last snapshot
+    if motion_detected and snapshot_counter < 5 and time.time() - snapshot_time >= 5:
+        snapshot_counter += 1
+        current_time = time.strftime('%Y-%m-%d %H:%M:%S')
+        cv2.imwrite(f'motion_snapshot_{current_time}_{snapshot_counter}.jpg', frame)
+        snapshot_time = time.time()
+        print(f'Unusual motion detected and snapshot taken at {current_time}')
 
     # Display the resulting frame
     cv2.imshow("Motion Detection", frame)
@@ -55,4 +61,3 @@ while True:
 
 # Release the video capture and close all windows
 video_capture.release()
-cv2.destroyAllWindows()
